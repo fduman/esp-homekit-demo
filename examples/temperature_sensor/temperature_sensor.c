@@ -53,6 +53,7 @@ void temperature_sensor_task(void *_args) {
 
             homekit_characteristic_notify(&temperature, HOMEKIT_FLOAT(temperature_value));
             homekit_characteristic_notify(&humidity, HOMEKIT_FLOAT(humidity_value));
+            printf("Temperature: %f, Humidity: %f\n", temperature_value, humidity_value);
         } else {
             printf("Couldnt read data from sensor\n");
         }
@@ -69,11 +70,11 @@ void temperature_sensor_init() {
 homekit_accessory_t *accessories[] = {
     HOMEKIT_ACCESSORY(.id=1, .category=homekit_accessory_category_thermostat, .services=(homekit_service_t*[]) {
         HOMEKIT_SERVICE(ACCESSORY_INFORMATION, .characteristics=(homekit_characteristic_t*[]) {
-            HOMEKIT_CHARACTERISTIC(NAME, "Temperature Sensor"),
-            HOMEKIT_CHARACTERISTIC(MANUFACTURER, "HaPK"),
-            HOMEKIT_CHARACTERISTIC(SERIAL_NUMBER, "0012345"),
-            HOMEKIT_CHARACTERISTIC(MODEL, "MyTemperatureSensor"),
-            HOMEKIT_CHARACTERISTIC(FIRMWARE_REVISION, "0.1"),
+            HOMEKIT_CHARACTERISTIC(NAME, "Temperature/Humidity Sensor"),
+            HOMEKIT_CHARACTERISTIC(MANUFACTURER, "Furkan Duman"),
+            HOMEKIT_CHARACTERISTIC(SERIAL_NUMBER, "0000001"),
+            HOMEKIT_CHARACTERISTIC(MODEL, "Mini"),
+            HOMEKIT_CHARACTERISTIC(FIRMWARE_REVISION, "1.0"),
             HOMEKIT_CHARACTERISTIC(IDENTIFY, temperature_sensor_identify),
             NULL
         }),
