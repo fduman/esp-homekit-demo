@@ -17,7 +17,7 @@
 #include "i2c/i2c.h"
 
 // Uncomment to enable debug output
-#define AM2320_DEBUG
+//#define AM2320_DEBUG
 
 #define AM2320_DEVICE_ADDRESS 0xB8 >> 1
 

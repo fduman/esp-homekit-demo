@@ -21,12 +21,8 @@ typedef struct
 static QueueHandle_t am2320_rx_queue[I2C_MAX_BUS] = {NULL};
 static TaskHandle_t am2320_task_handle[I2C_MAX_BUS] = {NULL};
 
-//
-// Forward declarations
-//
 static bool am2320_informUser_Impl(const QueueHandle_t *resultQueue, am2320_temp_t temperature, am2320_humid_t humidity);
 
-// Set default implementation .. User gets result as am2320_result_t event
 bool (*am2320_informUser)(const QueueHandle_t *resultQueue, am2320_temp_t temperature, am2320_humid_t humidity) = am2320_informUser_Impl;
 
 static uint16_t crc16(uint8_t *ptr, unsigned int len)
@@ -55,6 +51,9 @@ static uint16_t crc16(uint8_t *ptr, unsigned int len)
 
 void am2320_wakeup(i2c_dev_t *dev)
 {
+#ifdef AM2320_DEBUG
+    printf("Wake up command sent to sensor");
+#endif
     i2c_start(dev->bus);
     i2c_write(dev->bus, dev->addr << 1);
     sdk_os_delay_us(800);
@@ -91,24 +90,30 @@ static bool am2320_read(i2c_dev_t *dev, uint8_t start_address, uint8_t *buffer, 
 
     i2c_stop(dev->bus);
 
-    for (int i = 0; i < length + 2; i++)
+#ifdef AM2320_DEBUG
+    printf("Data read succeeded: ") for (int i = 0; i < length + 2; i++)
     {
-        printf("%x-", buffer[i]);
+        printf("-%x", buffer[i]);
     }
 
     printf("\n");
+#endif
 
     uint16_t calculated_crc = crc16(buffer, length + 2);
 
     if (crc != calculated_crc)
     {
+#ifdef AM2320_DEBUG
         printf("Crc check failed\n");
+#endif
         return false;
     }
 
     if (buffer[0] != function_code || buffer[1] != length)
     {
+#ifdef AM2320_DEBUG
         printf("Result check failed\n");
+#endif
         return false;
     }
 
@@ -117,8 +122,9 @@ static bool am2320_read(i2c_dev_t *dev, uint8_t start_address, uint8_t *buffer, 
 
 static bool am2320_measure(i2c_dev_t *dev, am2320_temp_t *temperature, am2320_humid_t *humidity)
 {
+#ifdef AM2320_DEBUG
     printf("Reading sensor data..\n");
-
+#endif
     uint8_t data[6];
 
     if (!am2320_read(dev, 0x00, data, sizeof(data) - 2))
@@ -132,7 +138,9 @@ static bool am2320_measure(i2c_dev_t *dev, am2320_temp_t *temperature, am2320_hu
     if (temp & 0x8000)
         temp = -(temp & 0x7fff);
 
+#ifdef AM2320_DEBUG
     printf("Temperature: %d, Humidity: %u\n", temp, humid);
+#endif
 
     *temperature = temp / 10.0;
     *humidity = humid / 10.0;
@@ -149,7 +157,9 @@ bool am2320_is_available(i2c_dev_t *dev)
         return false;
     }
 
-    printf("Sensor ready to use\n");
+#ifdef AM2320_DEBUG
+    printf("AM2320 sensor is ready to use\n");
+#endif
     return true;
 }
 
@@ -160,15 +170,18 @@ static void am2320_driver_task(void *pvParameters)
     am2320_command_t current_command;
     i2c_dev_t *dev = (i2c_dev_t *)pvParameters;
 
+#ifdef AM2320_DEBUG
     printf("%s: Started Task\n", __FUNCTION__);
+#endif
 
     while (1)
     {
         // Wait for user to insert commands
         if (xQueueReceive(am2320_rx_queue[dev->bus], &current_command, portMAX_DELAY) == pdTRUE)
         {
+#ifdef AM2320_DEBUG
             printf("%s: Received user command 0x%p\n", __FUNCTION__, current_command.resultQueue);
-
+#endif
             // use user provided queue
             if (current_command.resultQueue != NULL)
             {

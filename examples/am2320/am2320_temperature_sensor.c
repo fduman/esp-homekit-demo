@@ -1,16 +1,22 @@
-/* Simple example for I2C / BMP180 / Timer & Event Handling
+/* Simple example for I2C / AM2320 / Timer & Event Handling
  *
  * This sample code is in the public domain.
  */
+#include <stdio.h>
+#include <espressif/esp_wifi.h>
+#include <espressif/esp_sta.h>
+#include <esp/uart.h>
+#include <esp8266.h>
+#include <FreeRTOS.h>
+#include <task.h>
 #include "espressif/esp_common.h"
-#include "esp/uart.h"
-
-#include "FreeRTOS.h"
-#include "task.h"
 #include "timers.h"
 #include "queue.h"
+#include <homekit/homekit.h>
+#include <homekit/characteristics.h>
+#include "wifi.h"
 
-// BMP180 driver
+// AM2320 driver
 #include "am2320.h"
 
 #define I2C_BUS 0
@@ -33,6 +39,25 @@ i2c_dev_t dev = {
 // Communication Queue
 static QueueHandle_t mainqueue;
 static TimerHandle_t timerHandle;
+
+static void wifi_init() {
+    struct sdk_station_config wifi_config = {
+        .ssid = WIFI_SSID,
+        .password = WIFI_PASSWORD,
+    };
+
+    sdk_wifi_set_opmode(STATION_MODE);
+    sdk_wifi_station_set_config(&wifi_config);
+    sdk_wifi_station_connect();
+}
+
+
+void temperature_sensor_identify(homekit_value_t _value) {
+    printf("Temperature sensor identify\n");
+}
+
+homekit_characteristic_t temperature = HOMEKIT_CHARACTERISTIC_(CURRENT_TEMPERATURE, 0);
+homekit_characteristic_t humidity    = HOMEKIT_CHARACTERISTIC_(CURRENT_RELATIVE_HUMIDITY, 0);
 
 // Own BMP180 User Inform Implementation
 bool am2320_i2c_informUser(const QueueHandle_t *resultQueue, am2320_temp_t temperature, am2320_humid_t humidity)
@@ -61,8 +86,6 @@ void am2320_task(void *pvParameters)
     // Received pvParameters is communication queue
     QueueHandle_t *com_queue = (QueueHandle_t *)pvParameters;
 
-    printf("%s: Started user interface task\n", __FUNCTION__);
-
     while (1)
     {
         my_event_t ev;
@@ -72,18 +95,49 @@ void am2320_task(void *pvParameters)
         switch (ev.event_type)
         {
         case MY_EVT_TIMER:
-            printf("%s: Received Timer Event\n", __FUNCTION__);
             am2320_trigger_measurement(&dev, com_queue);
             break;
         case MY_EVT_AM2320:
-            printf("%s: Received AM2320 Event\n", __FUNCTION__);
             printf("Temperature: %f, Humidity: %f\n", (float)ev.am2320_data.temperature, (float)ev.am2320_data.humidity);
+            homekit_characteristic_notify(&temperature, HOMEKIT_FLOAT((float)ev.am2320_data.temperature));
+            homekit_characteristic_notify(&humidity, HOMEKIT_FLOAT((float)ev.am2320_data.humidity));
             break;
         default:
             break;
         }
     }
 }
+
+homekit_accessory_t *accessories[] = {
+    HOMEKIT_ACCESSORY(.id=1, .category=homekit_accessory_category_thermostat, .services=(homekit_service_t*[]) {
+        HOMEKIT_SERVICE(ACCESSORY_INFORMATION, .characteristics=(homekit_characteristic_t*[]) {
+            HOMEKIT_CHARACTERISTIC(NAME, "Temperature/Humidity Sensor"),
+            HOMEKIT_CHARACTERISTIC(MANUFACTURER, "Furkan Duman"),
+            HOMEKIT_CHARACTERISTIC(SERIAL_NUMBER, "0000002"),
+            HOMEKIT_CHARACTERISTIC(MODEL, "Mini"),
+            HOMEKIT_CHARACTERISTIC(FIRMWARE_REVISION, "2.0"),
+            HOMEKIT_CHARACTERISTIC(IDENTIFY, temperature_sensor_identify),
+            NULL
+        }),
+        HOMEKIT_SERVICE(TEMPERATURE_SENSOR, .primary=true, .characteristics=(homekit_characteristic_t*[]) {
+            HOMEKIT_CHARACTERISTIC(NAME, "Temperature Sensor"),
+            &temperature,
+            NULL
+        }),
+        HOMEKIT_SERVICE(HUMIDITY_SENSOR, .characteristics=(homekit_characteristic_t*[]) {
+            HOMEKIT_CHARACTERISTIC(NAME, "Humidity Sensor"),
+            &humidity,
+            NULL
+        }),
+        NULL
+    }),
+    NULL
+};
+
+homekit_server_config_t config = {
+    .accessories = accessories,
+    .password = "111-11-111"
+};
 
 // Setup HW
 void user_setup(void)
@@ -94,8 +148,12 @@ void user_setup(void)
     // Give the UART some time to settle
     sdk_os_delay_us(500);
 
+    wifi_init();
+
     // Init I2C bus Interface
     i2c_init(I2C_BUS, 5, 4, I2C_FREQ_100K);
+
+    homekit_server_init(&config);
 }
 
 void user_init(void)
