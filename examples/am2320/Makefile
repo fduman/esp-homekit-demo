@@ -3,6 +3,8 @@ PROGRAM = am2320_temperature_sensor
 EXTRA_COMPONENTS = \
 	extras/i2c \
 	extras/http-parser \
+	extras/dhcpserver \
+	$(abspath ../../components/esp8266-open-rtos/wifi_config) \
 	$(abspath ../../components/esp8266-open-rtos/cJSON) \
 	$(abspath ../../components/common/wolfssl) \
 	$(abspath ../../components/common/homekit)

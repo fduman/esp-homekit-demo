@@ -14,7 +14,7 @@
 #include "queue.h"
 #include <homekit/homekit.h>
 #include <homekit/characteristics.h>
-#include "wifi.h"
+#include "wifi_config.h"
 
 // AM2320 driver
 #include "am2320.h"
@@ -40,7 +40,7 @@ i2c_dev_t dev = {
 static QueueHandle_t mainqueue;
 static TimerHandle_t timerHandle;
 
-static void wifi_init() {
+/* static void wifi_init() {
     struct sdk_station_config wifi_config = {
         .ssid = WIFI_SSID,
         .password = WIFI_PASSWORD,
@@ -51,7 +51,7 @@ static void wifi_init() {
     sdk_wifi_station_connect();
 }
 
-
+ */
 void temperature_sensor_identify(homekit_value_t _value) {
     printf("Temperature sensor identify\n");
 }
@@ -139,6 +139,10 @@ homekit_server_config_t config = {
     .password = "111-11-111"
 };
 
+void on_wifi_ready() {
+    homekit_server_init(&config);
+}
+
 // Setup HW
 void user_setup(void)
 {
@@ -148,12 +152,11 @@ void user_setup(void)
     // Give the UART some time to settle
     sdk_os_delay_us(500);
 
-    wifi_init();
+    //wifi_config_reset();
+    wifi_config_init("TempSensor", config.password, on_wifi_ready);
 
     // Init I2C bus Interface
     i2c_init(I2C_BUS, 5, 4, I2C_FREQ_100K);
-
-    homekit_server_init(&config);
 }
 
 void user_init(void)
