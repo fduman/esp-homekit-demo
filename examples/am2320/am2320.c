@@ -120,7 +120,7 @@ static bool am2320_read(i2c_dev_t *dev, uint8_t start_address, uint8_t *buffer, 
     return true;
 }
 
-static bool am2320_measure(i2c_dev_t *dev, am2320_temp_t *temperature, am2320_humid_t *humidity)
+bool am2320_measure(i2c_dev_t *dev, am2320_temp_t *temperature, am2320_humid_t *humidity)
 {
 #ifdef AM2320_DEBUG
     printf("Reading sensor data..\n");

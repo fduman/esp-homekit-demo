@@ -49,6 +49,8 @@ extern "C"
     // Returns true if the am2320 is detected.
     bool am2320_is_available(i2c_dev_t *dev);
 
+    bool am2320_measure(i2c_dev_t *dev, am2320_temp_t *temperature, am2320_humid_t *humidity);
+
 #ifdef __cplusplus
 }
 #endif
