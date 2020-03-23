@@ -3,3 +3,4 @@
 /examples/*/build
 /examples/*/firmware
 .DS_Store
+examples/.vscode/settings.json
