@@ -14,7 +14,6 @@
 // AM2320_Event_Command
 typedef struct
 {
-    uint8_t cmd;
     const QueueHandle_t *resultQueue;
 } am2320_command_t;
 
@@ -25,10 +24,10 @@ static TaskHandle_t am2320_task_handle[I2C_MAX_BUS] = {NULL};
 //
 // Forward declarations
 //
-static bool am2320_informUser_Impl(const QueueHandle_t *resultQueue, uint8_t cmd, am2320_temp_t temperature, am2320_humid_t humidity);
+static bool am2320_informUser_Impl(const QueueHandle_t *resultQueue, am2320_temp_t temperature, am2320_humid_t humidity);
 
 // Set default implementation .. User gets result as am2320_result_t event
-bool (*am2320_informUser)(const QueueHandle_t *resultQueue, uint8_t cmd, am2320_temp_t temperature, am2320_humid_t humidity) = am2320_informUser_Impl;
+bool (*am2320_informUser)(const QueueHandle_t *resultQueue, am2320_temp_t temperature, am2320_humid_t humidity) = am2320_informUser_Impl;
 
 static uint16_t crc16(uint8_t *ptr, unsigned int len)
 {
@@ -168,7 +167,7 @@ static void am2320_driver_task(void *pvParameters)
         // Wait for user to insert commands
         if (xQueueReceive(am2320_rx_queue[dev->bus], &current_command, portMAX_DELAY) == pdTRUE)
         {
-            printf("%s: Received user command %d 0x%p\n", __FUNCTION__, current_command.cmd, current_command.resultQueue);
+            printf("%s: Received user command 0x%p\n", __FUNCTION__, current_command.resultQueue);
 
             // use user provided queue
             if (current_command.resultQueue != NULL)
@@ -179,9 +178,7 @@ static void am2320_driver_task(void *pvParameters)
 
                 if (am2320_measure(dev, &temperature, &humidity))
                 {
-                    if (!am2320_informUser(current_command.resultQueue,
-                                           current_command.cmd,
-                                           temperature, humidity))
+                    if (!am2320_informUser(current_command.resultQueue, temperature, humidity))
                     {
                         // Failed to send info to user
                         printf("%s: Unable to inform user am2320_informUser returned \"false\"\n", __FUNCTION__);
@@ -214,11 +211,10 @@ static bool am2320_createTask(i2c_dev_t *dev)
 }
 
 // Default user inform implementation
-static bool am2320_informUser_Impl(const QueueHandle_t *resultQueue, uint8_t cmd, am2320_temp_t temperature, am2320_humid_t humidity)
+static bool am2320_informUser_Impl(const QueueHandle_t *resultQueue, am2320_temp_t temperature, am2320_humid_t humidity)
 {
     am2320_result_t result;
 
-    result.cmd = cmd;
     result.temperature = temperature;
     result.humidity = humidity;
 
@@ -250,7 +246,6 @@ void am2320_trigger_measurement(i2c_dev_t *dev, const QueueHandle_t *resultQueue
 {
     am2320_command_t c;
 
-    c.cmd = AM2320_MEASURE;
     c.resultQueue = resultQueue;
 
     xQueueSend(am2320_rx_queue[dev->bus], &c, 0);

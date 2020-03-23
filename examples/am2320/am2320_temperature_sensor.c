@@ -35,12 +35,11 @@ static QueueHandle_t mainqueue;
 static TimerHandle_t timerHandle;
 
 // Own BMP180 User Inform Implementation
-bool am2320_i2c_informUser(const QueueHandle_t *resultQueue, uint8_t cmd, am2320_temp_t temperature, am2320_humid_t humidity)
+bool am2320_i2c_informUser(const QueueHandle_t *resultQueue, am2320_temp_t temperature, am2320_humid_t humidity)
 {
     my_event_t ev;
 
     ev.event_type = MY_EVT_AM2320;
-    ev.am2320_data.cmd = cmd;
     ev.am2320_data.temperature = temperature;
     ev.am2320_data.humidity = humidity;
 

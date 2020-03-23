@@ -26,37 +26,31 @@ extern "C"
 {
 #endif
 
-    //
-    // Create bmp180_types
-    //
-
     // temperature in °C
     typedef float am2320_temp_t;
-    // humidity
+    // humidity in %
     typedef float am2320_humid_t;
 
-    // BMP180_Event_Result
     typedef struct
     {
-        uint8_t cmd;
         am2320_temp_t temperature;
         am2320_humid_t humidity;
     } am2320_result_t;
 
-    // Init bmp180 driver ...
+    // Init am2320 driver ...
     bool am2320_init(i2c_dev_t *dev);
 
-    // Trigger a "complete" measurement (temperature and pressure will be valid when given to "bmp180_informUser)
+    // Trigger a "complete" measurement (temperature and pressure will be valid when given to "am2320_informUser)
     void am2320_trigger_measurement(i2c_dev_t *dev, const QueueHandle_t *resultQueue);
 
     // Give the user the chance to create it's own handler
-    extern bool (*am2320_informUser)(const QueueHandle_t *resultQueue, uint8_t cmd, am2320_temp_t temperature, am2320_humid_t humidity);
+    extern bool (*am2320_informUser)(const QueueHandle_t *resultQueue, am2320_temp_t temperature, am2320_humid_t humidity);
 
-    // Returns true if the bmp180 is detected.
+    // Returns true if the am2320 is detected.
     bool am2320_is_available(i2c_dev_t *dev);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* DRIVER_BMP180_H_ */
+#endif /* DRIVER_AM2320_H_ */
